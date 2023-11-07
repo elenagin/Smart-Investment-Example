@@ -110,23 +110,25 @@ df_users['Date'] = pd.to_datetime(df_users['investment_close_date'])
 data1 = data1.append(row2, ignore_index=True)
 data1.tail()"""
 
+
+df_fund_users = pd.DataFrame()
+
 for fund in fund_composition:
     temp = 0
     if fund != 'SPX':
         df_merged = pd.merge(df_users, df_all[df_all['Ticker'] == fund], on='Date', how='left')
         df_merged = df_merged.drop(['High', 'Low', 'Week', 'Stock Splits', 'Dividends', 'Volume'], axis=1)
-        # df_fund_users = pd.concat([df_fund_users.copy(), df_merged], ignore_index=True)
-        df_fund_users = pd.DataFrame()
-        df_fund_users['Ticker'] = fund
-        df_fund_users = pd.concat([df_fund_users.copy(), df_merged], ignore_index=True)
-        # df_fund_users['Ticker'][0] = fund
-        # print(df_fund_users.head(5))
-        temp += df_fund_users['accumulated_gain_loss'][1]
-        print(temp)
+        df_fund_users = pd.concat([df_fund_users, df_merged], ignore_index=True)
+        temp += df_fund_users['accumulated_gain_loss'].iloc[-1]
         
+print(df_fund_users.sort_values(by=['user_id', 'investment_open_date']))
 
 
-cumulated_performance_on_close = 3
+df_fund_users['product_column'] = df_fund_users['fund_composition'] * df_fund_users['accumulated_gain_loss']
+user_sums = df_fund_users.groupby('user_id')['product_column'].sum()
+cumulated_performance_on_close = user_sums.sum()
 cumulated_performance_on_open = 3
 df_users['amount_refund'] = df_users['amount_invested'] * (1 + cumulated_performance_on_close/100 - cumulated_performance_on_open/100)
+
+
 pd.DataFrame(df_users).to_csv('path_to_folder/users_refund.csv', index=False)
