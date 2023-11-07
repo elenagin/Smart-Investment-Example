@@ -80,15 +80,10 @@ df_all['fund_composition'] = df_all['Ticker'].map(fund_composition)
 df_all = df_all.sort_values(by=['Ticker', 'Date'])
 df_all['gain_loss_percentage'] = df_all.groupby('Ticker')['Close'].transform(pct_change_reset) * 100
 df_all['accumulated_gain_loss'] = df_all.groupby('Ticker')['gain_loss_percentage'].transform(cumsum_change_reset)
-print(df_all[df_all['Ticker'] == 'AAPL'][['Date', 'Ticker', 'Close', 'gain_loss_percentage', 'accumulated_gain_loss']])
-print(df_all[df_all['Ticker'] == 'AMZN'][['Date', 'Ticker', 'Close', 'gain_loss_percentage', 'accumulated_gain_loss']])
+# print(df_all[df_all['Ticker'] == 'AAPL'][['Date', 'Ticker', 'Close', 'gain_loss_percentage', 'accumulated_gain_loss']].head(20))
+# print(df_all[df_all['Ticker'] == 'AMZN'][['Date', 'Ticker', 'Close', 'gain_loss_percentage', 'accumulated_gain_loss']])
 
-# df_all[df_all['Ticker'] == 'AMZN']['accumulated_gain_loss'] = df_all[df_all['Ticker'] == 'AMZN'].groupby('Ticker')['gain_loss_percentage'].cumsum()
-#df_all['gain_loss_percentage'] = df_all['gain_loss_percentage'].fillna(0)
-#df_all['accumulated_gain_loss'] = df_all['accumulated_gain_loss'].fillna(0)
-#print(df_all[df_all['Ticker'] == 'AMZN'][['Date', 'Ticker', 'gain_loss_percentage', 'accumulated_gain_loss']])
-
-"""data = {
+data = {
     'user_id': [1, 2],
     'investment_open_date': ['2022-12-02', '2022-12-02'],
     'investment_close_date': ['2022-10-20', '2022-12-19'],
@@ -97,8 +92,41 @@ print(df_all[df_all['Ticker'] == 'AMZN'][['Date', 'Ticker', 'Close', 'gain_loss_
 df_users = pd.DataFrame(data)
 df_users.to_csv('path_to_folder/users.csv', index=False)
 
-
 # Get user data
-amount_invested_series = pd.read_csv('path_to_folder/users.csv')
-df_users['amount_refund'] = df_users['amount_invested'] * (1 + 3/100 - 4/100)
-pd.DataFrame(df_users).to_csv('path_to_folder/users_refund.csv', index=False)"""
+df_users = pd.read_csv('path_to_folder/users.csv')
+# print(df_users['investment_close_date'][0])
+
+df_all['Date'] = pd.to_datetime(df_all['Date'])
+df_users['Date'] = pd.to_datetime(df_users['investment_close_date'])
+        
+
+"""row2 = {
+    "ID": 105,
+    "Name": "Nana",
+    "CGPA": 3.1,
+    "Dept": "IT",
+    "Region": "Tokyo",
+}
+data1 = data1.append(row2, ignore_index=True)
+data1.tail()"""
+
+for fund in fund_composition:
+    temp = 0
+    if fund != 'SPX':
+        df_merged = pd.merge(df_users, df_all[df_all['Ticker'] == fund], on='Date', how='left')
+        df_merged = df_merged.drop(['High', 'Low', 'Week', 'Stock Splits', 'Dividends', 'Volume'], axis=1)
+        # df_fund_users = pd.concat([df_fund_users.copy(), df_merged], ignore_index=True)
+        df_fund_users = pd.DataFrame()
+        df_fund_users['Ticker'] = fund
+        df_fund_users = pd.concat([df_fund_users.copy(), df_merged], ignore_index=True)
+        # df_fund_users['Ticker'][0] = fund
+        # print(df_fund_users.head(5))
+        temp += df_fund_users['accumulated_gain_loss'][1]
+        print(temp)
+        
+
+
+cumulated_performance_on_close = 3
+cumulated_performance_on_open = 3
+df_users['amount_refund'] = df_users['amount_invested'] * (1 + cumulated_performance_on_close/100 - cumulated_performance_on_open/100)
+pd.DataFrame(df_users).to_csv('path_to_folder/users_refund.csv', index=False)
