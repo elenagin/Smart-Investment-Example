@@ -80,55 +80,74 @@ df_all['fund_composition'] = df_all['Ticker'].map(fund_composition)
 df_all = df_all.sort_values(by=['Ticker', 'Date'])
 df_all['gain_loss_percentage'] = df_all.groupby('Ticker')['Close'].transform(pct_change_reset) * 100
 df_all['accumulated_gain_loss'] = df_all.groupby('Ticker')['gain_loss_percentage'].transform(cumsum_change_reset)
+
 # print(df_all[df_all['Ticker'] == 'AAPL'][['Date', 'Ticker', 'Close', 'gain_loss_percentage', 'accumulated_gain_loss']].head(20))
 # print(df_all[df_all['Ticker'] == 'AMZN'][['Date', 'Ticker', 'Close', 'gain_loss_percentage', 'accumulated_gain_loss']])
 
 data = {
     'user_id': [1, 2],
     'investment_open_date': ['2022-12-02', '2022-12-02'],
-    'investment_close_date': ['2022-10-20', '2022-12-19'],
+    'investment_close_date': ['2023-10-20', '2022-12-19'],
     'amount_invested': [1000, 1000]
 }
 df_users = pd.DataFrame(data)
+df_users_closed = pd.DataFrame(data)
+df_users_open = pd.DataFrame(data)
+df_fund_users = pd.DataFrame()
+
 df_users.to_csv('path_to_folder/users.csv', index=False)
 
-# Get user data
+# Read user file
 df_users = pd.read_csv('path_to_folder/users.csv')
-# print(df_users['investment_close_date'][0])
-
 df_all['Date'] = pd.to_datetime(df_all['Date'])
-df_users['Date'] = pd.to_datetime(df_users['investment_close_date'])
-        
-
-"""row2 = {
-    "ID": 105,
-    "Name": "Nana",
-    "CGPA": 3.1,
-    "Dept": "IT",
-    "Region": "Tokyo",
-}
-data1 = data1.append(row2, ignore_index=True)
-data1.tail()"""
 
 
-df_fund_users = pd.DataFrame()
+df_users_closed['Date'] = pd.to_datetime(df_users['investment_close_date'])
 
 for fund in fund_composition:
     temp = 0
     if fund != 'SPX':
-        df_merged = pd.merge(df_users, df_all[df_all['Ticker'] == fund], on='Date', how='left')
-        df_merged = df_merged.drop(['High', 'Low', 'Week', 'Stock Splits', 'Dividends', 'Volume'], axis=1)
+        df_merged = pd.merge(df_users_closed, df_all[df_all['Ticker'] == fund], on='Date', how='left')
+        df_merged = df_merged.drop(['High', 'Low', 'Week', 'Stock Splits', 'Dividends', 'Date', 'Volume'], axis=1)
         df_fund_users = pd.concat([df_fund_users, df_merged], ignore_index=True)
         temp += df_fund_users['accumulated_gain_loss'].iloc[-1]
         
-print(df_fund_users.sort_values(by=['user_id', 'investment_open_date']))
+# print(df_fund_users.sort_values(by=['user_id', 'investment_close_date']))
 
 
 df_fund_users['product_column'] = df_fund_users['fund_composition'] * df_fund_users['accumulated_gain_loss']
-user_sums = df_fund_users.groupby('user_id')['product_column'].sum()
-cumulated_performance_on_close = user_sums.sum()
-cumulated_performance_on_open = 3
-df_users['amount_refund'] = df_users['amount_invested'] * (1 + cumulated_performance_on_close/100 - cumulated_performance_on_open/100)
+# user_sums = df_fund_users.groupby('user_id')['product_column'].sum()
+# print(user_sums)
 
 
+# filtered_rows = (df_fund_users['investment_close_date'] == '2022-12-19') & (df_fund_users['user_id'] == 2)
+# cumulated_performance_on_close = df_fund_users.loc[filtered_rows, 'product_column'].sum()
+# print("CLOSE", cumulated_performance_on_close)
+
+
+df_users_refund = df_users_closed
+df_users_refund['amount_refund'] = df_users_refund['amount_invested'] * (1 + df_fund_users.groupby('user_id')['product_column'].sum()[df_users_refund['user_id']]/100 - 0.092/100)
+print(df_users_refund)
+
+
+"""
+filtered_rows = (df_fund_users['investment_open_date'] == '2022-12-02') & (df_fund_users['user_id'] == 2)
+cumulated_performance_on_open = df_fund_users.loc[filtered_rows, 'product_column'].sum()
+print("OPEN", cumulated_performance_on_open)"""
+
+
+
+
+
+# filtered_rows = (df_fund_users['investment_open_date'] == '2022-12-02') & (df_fund_users['user_id'] == 2)
+# cumulated_performance_on_open = df_fund_users.loc[filtered_rows, 'product_column'].sum()
+
+# print(user_sums[2])
+
+# print("cumulated_performance_on_open", cumulated_performance_on_open)
+# print("cumulated_performance_on_close", cumulated_performance_on_close)
+
+#df_users['amount_refund'] = df_users['amount_invested'] * (1 + cumulated_performance_on_close/100 - cumulated_performance_on_open/100)
+
+# print(df_users)
 pd.DataFrame(df_users).to_csv('path_to_folder/users_refund.csv', index=False)
